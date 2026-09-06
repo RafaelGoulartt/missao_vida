@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, DollarSign, BookOpen, Shield, Search, Plus, Trash2, UserCheck, Link2, CalendarDays, FileText, Sparkles, Newspaper, HandHeart } from "lucide-react";
+import { ArrowLeft, Users, DollarSign, BookOpen, Shield, Search, Plus, Trash2, UserCheck, Link2, CalendarDays, FileText, Sparkles, Newspaper, HandHeart, Pencil, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,10 @@ import SponsorshipAdmin from "@/components/SponsorshipAdmin";
 import NewsAdmin from "@/components/NewsAdmin";
 import VolunteerAdmin from "@/components/VolunteerAdmin";
 import EventsAdmin from "@/components/EventsAdmin";
+import CollectionPointsAdmin from "@/components/CollectionPointsAdmin";
+import { Switch } from "@/components/ui/switch";
 
-type AdminTab = "alunos" | "doacoes" | "assinaturas" | "aulas" | "eventos" | "presencas" | "responsaveis" | "conteudo" | "noticias" | "apadrinhar" | "voluntarios" | "seguranca";
+type AdminTab = "alunos" | "doacoes" | "assinaturas" | "aulas" | "eventos" | "presencas" | "responsaveis" | "conteudo" | "noticias" | "apadrinhar" | "voluntarios" | "locais" | "seguranca";
 
 const DAY_LABELS: Record<string, string> = {
 
@@ -44,6 +46,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
 
   const [showClassForm, setShowClassForm] = useState(false);
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [classForm, setClassForm] = useState({ title: "", address: "", day_of_week: "", time_slot: "", max_capacity: "30" });
   const [linkForm, setLinkForm] = useState({ parent_user_id: "", child_user_id: "", relationship: "responsável" });
@@ -58,7 +62,7 @@ const Admin = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const [enrollRes, donRes, classRes, usersRes, attendanceRes, linksRes, subsRes, rolesRes, pixRes] = await Promise.all([
+    const [enrollRes, donRes, classRes, usersRes, attendanceRes, linksRes, subsRes, rolesRes, pixRes, permsRes] = await Promise.all([
       supabase.from("class_enrollments" as any).select("*, classes(*)"),
       supabase.from("donations" as any).select("*").order("created_at", { ascending: false }),
       supabase.from("classes" as any).select("*"),
@@ -68,6 +72,7 @@ const Admin = () => {
       supabase.from("subscription_registrations" as any).select("*").order("created_at", { ascending: false }),
       supabase.from("user_roles" as any).select("*"),
       supabase.from("pix_stats" as any).select("*").limit(1).maybeSingle(),
+      supabase.from("user_permissions" as any).select("*"),
     ]);
 
     setEnrollments((enrollRes.data as any[]) || []);
@@ -85,6 +90,9 @@ const Admin = () => {
       if (rolesMap[r.user_id] !== "admin") rolesMap[r.user_id] = r.role;
     });
     setUserRoles(rolesMap);
+    const permsMap: Record<string, boolean> = {};
+    ((permsRes.data as any[]) || []).forEach((p: any) => { permsMap[p.user_id] = !!p.can_enroll_classes; });
+    setPermissions(permsMap);
     const pixData = (pixRes.data as any) || null;
     setPixStats(pixData);
     if (pixData) {
@@ -114,29 +122,62 @@ const Admin = () => {
     toast({ title: "Papel atualizado", description: newRole === "admin" ? "Usuário agora é Administrador" : "Usuário agora é Usuário comum" });
   };
 
-  const handleCreateClass = async () => {
+  const openNewClass = () => {
+    setEditingClassId(null);
+    setClassForm({ title: "", address: "", day_of_week: "", time_slot: "", max_capacity: "30" });
+    setShowClassForm(true);
+  };
+
+  const openEditClass = (c: any) => {
+    setEditingClassId(c.id);
+    setClassForm({
+      title: c.title || c.category || "",
+      address: c.address || "",
+      day_of_week: c.day_of_week || "",
+      time_slot: c.time_slot || "",
+      max_capacity: c.max_capacity ? String(c.max_capacity) : "30",
+    });
+    setShowClassForm(true);
+  };
+
+  const handleSaveClass = async () => {
     if (!classForm.title.trim() || !classForm.day_of_week || !classForm.time_slot) {
       toast({ title: "Preencha nome, dia e horário", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("classes" as any).insert({
+    const payload = {
       title: classForm.title.trim(),
       address: classForm.address.trim() || null,
       day_of_week: classForm.day_of_week,
       time_slot: classForm.time_slot,
       max_capacity: parseInt(classForm.max_capacity) || 30,
-    } as any);
+    };
+    const { error } = editingClassId
+      ? await supabase.from("classes" as any).update(payload as any).eq("id", editingClassId)
+      : await supabase.from("classes" as any).insert(payload as any);
 
     if (error) {
-      toast({ title: "Erro ao criar aula", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao salvar aula", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Aula criada com sucesso!" });
+      toast({ title: editingClassId ? "Aula atualizada!" : "Aula criada com sucesso!" });
       setShowClassForm(false);
+      setEditingClassId(null);
       setClassForm({ title: "", address: "", day_of_week: "", time_slot: "", max_capacity: "30" });
       loadData();
     }
   };
 
+  const handleTogglePermission = async (userId: string, allowed: boolean) => {
+    const { error } = await supabase
+      .from("user_permissions" as any)
+      .upsert({ user_id: userId, can_enroll_classes: allowed } as any, { onConflict: "user_id" });
+    if (error) {
+      toast({ title: "Erro ao atualizar permissão", description: error.message, variant: "destructive" });
+      return;
+    }
+    setPermissions((prev) => ({ ...prev, [userId]: allowed }));
+    toast({ title: allowed ? "Inscrição em aulas liberada" : "Inscrição em aulas bloqueada" });
+  };
 
   const handleDeleteClass = async (id: string) => {
     const { error } = await supabase.from("classes" as any).delete().eq("id", id);
@@ -256,6 +297,7 @@ const Admin = () => {
     { id: "noticias" as AdminTab, label: "Notícias", icon: Newspaper, count: 0 },
     { id: "apadrinhar" as AdminTab, label: "Apadrinhar", icon: Sparkles, count: 0 },
     { id: "voluntarios" as AdminTab, label: "Voluntários", icon: HandHeart, count: 0 },
+    { id: "locais" as AdminTab, label: "Locais", icon: MapPin, count: 0 },
     { id: "seguranca" as AdminTab, label: "Segurança", icon: Shield, count: users.length },
   ];
 
@@ -537,10 +579,10 @@ const Admin = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-foreground">Turmas Cadastradas</h3>
-                  <Dialog open={showClassForm} onOpenChange={setShowClassForm}>
-                    <DialogTrigger asChild><Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nova Aula</Button></DialogTrigger>
+                  <Dialog open={showClassForm} onOpenChange={(open) => { setShowClassForm(open); if (!open) setEditingClassId(null); }}>
+                    <DialogTrigger asChild><Button size="sm" className="gap-1.5" onClick={openNewClass}><Plus className="h-4 w-4" /> Nova Aula</Button></DialogTrigger>
                     <DialogContent>
-                      <DialogHeader><DialogTitle>Criar Nova Aula</DialogTitle></DialogHeader>
+                      <DialogHeader><DialogTitle>{editingClassId ? "Editar Aula" : "Criar Nova Aula"}</DialogTitle></DialogHeader>
                       <div className="space-y-4 mt-2">
                         
                         <div><Label>Nome da aula</Label><Input placeholder="Ex: Futebol Infantil - Turma A" value={classForm.title} onChange={(e) => setClassForm({ ...classForm, title: e.target.value })} maxLength={120} /></div>
@@ -548,7 +590,7 @@ const Admin = () => {
                         <div><Label>Dia da Semana</Label><Select value={classForm.day_of_week} onValueChange={(v) => setClassForm({ ...classForm, day_of_week: v })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{Object.entries(DAY_LABELS).slice(0, 7).map(([val, label]) => <SelectItem key={val} value={val}>{label}</SelectItem>)}</SelectContent></Select></div>
                         <div><Label>Horário</Label><Input placeholder="Ex: 14:00 - 16:00" value={classForm.time_slot} onChange={(e) => setClassForm({ ...classForm, time_slot: e.target.value })} /></div>
                         <div><Label>Quantidade máxima de alunos</Label><Input type="number" min="1" value={classForm.max_capacity} onChange={(e) => setClassForm({ ...classForm, max_capacity: e.target.value })} /></div>
-                        <Button onClick={handleCreateClass} className="w-full">Criar Aula</Button>
+                        <Button onClick={handleSaveClass} className="w-full">{editingClassId ? "Salvar alterações" : "Criar Aula"}</Button>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -560,7 +602,7 @@ const Admin = () => {
                     <div key={c.id} className="bg-card rounded-xl p-4 border border-border">
                       <div className="flex items-center justify-between mb-2">
                         <div><h4 className="font-semibold text-foreground text-sm">{c.title || c.category || "Aula"}</h4><p className="text-xs text-muted-foreground">{DAY_LABELS[c.day_of_week] || c.day_of_week} • {c.time_slot}</p>{c.address && <p className="text-xs text-muted-foreground mt-0.5">📍 {c.address}</p>}</div>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClass(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                        <div className="flex items-center"><Button variant="ghost" size="icon" onClick={() => openEditClass(c)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClass(c.id)}><Trash2 className="h-4 w-4" /></Button></div>
                       </div>
                       <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-muted-foreground" /><span className="text-xs text-muted-foreground">{enrolled}/{c.max_capacity || "∞"} alunos</span></div><div className="h-1.5 flex-1 mx-3 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((enrolled / (c.max_capacity || 30)) * 100, 100)}%` }} /></div></div>
                     </div>
@@ -648,6 +690,8 @@ const Admin = () => {
 
             {activeTab === "voluntarios" && <VolunteerAdmin />}
 
+            {activeTab === "locais" && <CollectionPointsAdmin />}
+
             {activeTab === "seguranca" && (
               <div className="space-y-4">
                 <div className="bg-card rounded-xl p-4 border border-border"><h3 className="font-semibold text-foreground text-sm mb-1">Usuários Cadastrados</h3><p className="text-3xl font-bold text-primary">{users.length}</p></div>
@@ -667,19 +711,29 @@ const Admin = () => {
                               <p className="text-xs text-muted-foreground">Desde {new Date(u.created_at).toLocaleDateString("pt-BR")}</p>
                             </div>
                           </div>
-                          <Select value={role} onValueChange={(v) => handleChangeRole(u.user_id, v as "admin" | "user")} disabled={isSelf}>
-                            <SelectTrigger className="w-[150px] h-9"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="user">Usuário</SelectItem>
-                              <SelectItem value="admin">Administrador</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex flex-col items-end gap-2">
+                            <Select value={role} onValueChange={(v) => handleChangeRole(u.user_id, v as "admin" | "user")} disabled={isSelf}>
+                              <SelectTrigger className="w-[150px] h-9"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="user">Usuário</SelectItem>
+                                <SelectItem value="admin">Administrador</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-muted-foreground whitespace-nowrap">Pode se inscrever em aulas</span>
+                              <Switch
+                                checked={role === "admin" || !!permissions[u.user_id]}
+                                disabled={role === "admin"}
+                                onCheckedChange={(checked) => handleTogglePermission(u.user_id, checked)}
+                              />
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-                <div className="bg-card rounded-xl p-4 border border-border"><div className="flex items-center gap-2 mb-2"><Shield className="h-4 w-4 text-primary" /><h3 className="font-semibold text-foreground text-sm">Informações de Segurança</h3></div><div className="space-y-2 text-xs text-muted-foreground"><p>• Usuários não podem alterar configurações do app</p><p>• Dados protegidos por políticas de acesso</p><p>• Autenticação obrigatória para todas as funcionalidades</p><p>• Proteção contra senhas vazadas ativada</p></div></div>
+                <div className="bg-card rounded-xl p-4 border border-border"><div className="flex items-center gap-2 mb-2"><Shield className="h-4 w-4 text-primary" /><h3 className="font-semibold text-foreground text-sm">Informações de Segurança</h3></div><div className="space-y-2 text-xs text-muted-foreground"><p>• Usuários não podem alterar configurações do app</p><p>• Dados protegidos por políticas de acesso</p><p>• Autenticação obrigatória para todas as funcionalidades</p><p>• Proteção contra senhas vazadas ativada</p><p>• Inscrição em aulas exige autorização do administrador</p></div></div>
               </div>
             )}
           </>

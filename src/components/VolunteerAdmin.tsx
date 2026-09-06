@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, User, X, Calendar, Upload, Loader2 } from "lucide-react";
+import { Trash2, Plus, User, X, Calendar, Upload, Loader2, Pencil, Save } from "lucide-react";
 
 interface Action {
   id: string;
@@ -38,6 +38,7 @@ const VolunteerAdmin = () => {
   const [regs, setRegs] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -63,7 +64,23 @@ const VolunteerAdmin = () => {
     load();
   }, []);
 
-  const handleAdd = async () => {
+  const emptyForm = { title: "", description: "", action_date: "", location: "", entry_fee: "", pix_key: "", image_url: "" };
+
+  const openEdit = (a: Action) => {
+    setEditingId(a.id);
+    setForm({
+      title: a.title || "",
+      description: a.description || "",
+      action_date: new Date(a.action_date).toISOString().slice(0, 16),
+      location: a.location || "",
+      entry_fee: String(a.entry_fee ?? ""),
+      pix_key: a.pix_key || "",
+      image_url: a.image_url || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSave = async () => {
     if (!form.title || !form.action_date || !form.pix_key) {
       toast({ title: "Preencha título, data e chave PIX", variant: "destructive" });
       return;
@@ -73,7 +90,7 @@ const VolunteerAdmin = () => {
       toast({ title: "Valor de ingresso inválido", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("volunteer_actions" as any).insert({
+    const payload = {
       title: form.title.trim(),
       description: form.description.trim() || null,
       action_date: new Date(form.action_date).toISOString(),
@@ -81,14 +98,17 @@ const VolunteerAdmin = () => {
       entry_fee: fee,
       pix_key: form.pix_key.trim(),
       image_url: form.image_url || null,
-      created_by: user?.id,
-    } as any);
+    };
+    const { error } = editingId
+      ? await supabase.from("volunteer_actions" as any).update(payload as any).eq("id", editingId)
+      : await supabase.from("volunteer_actions" as any).insert({ ...payload, created_by: user?.id } as any);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Ação criada!" });
-    setForm({ title: "", description: "", action_date: "", location: "", entry_fee: "", pix_key: "", image_url: "" });
+    toast({ title: editingId ? "Ação atualizada!" : "Ação criada!" });
+    setForm(emptyForm);
+    setEditingId(null);
     load();
   };
 
@@ -148,7 +168,7 @@ const VolunteerAdmin = () => {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Nova ação de voluntariado</CardTitle>
+          <CardTitle className="text-lg">{editingId ? "Editar ação de voluntariado" : "Nova ação de voluntariado"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
@@ -201,9 +221,14 @@ const VolunteerAdmin = () => {
             </div>
             {form.image_url && <img src={form.image_url} alt="Preview" className="mt-2 max-h-40 w-full rounded-lg border border-border object-cover" />}
           </div>
-          <Button onClick={handleAdd} className="w-full">
-            <Plus className="h-4 w-4 mr-2" /> Criar ação
+          <Button onClick={handleSave} className="w-full">
+            {editingId ? <><Save className="h-4 w-4 mr-2" /> Salvar alterações</> : <><Plus className="h-4 w-4 mr-2" /> Criar ação</>}
           </Button>
+          {editingId && (
+            <Button variant="outline" className="w-full" onClick={() => { setEditingId(null); setForm(emptyForm); }}>
+              Cancelar edição
+            </Button>
+          )}
 
         </CardContent>
       </Card>
@@ -234,9 +259,14 @@ const VolunteerAdmin = () => {
                         R$ {Number(a.entry_fee).toFixed(2).replace(".", ",")} • PIX: {a.pix_key}
                       </p>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(a.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(a)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(a.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="bg-muted rounded-lg p-2">

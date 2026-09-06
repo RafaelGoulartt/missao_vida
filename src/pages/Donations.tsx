@@ -25,18 +25,7 @@ const subscriptionMonths = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ].map((name, index) => ({ name, index }));
-const couponCollectionPoints = [
-  {
-    name: "Sede Missão Vida",
-    address: "R. Jaci, 314 - Cidade Ariston Estela Azevedo, Carapicuíba - SP",
-    mapsUrl: "https://maps.app.goo.gl/Cm6VyPve2Jy6w6ym9",
-  },
-  {
-    name: "Ponto de apoio - Vila Cretti",
-    address: "R. Ingá - Jardim Angela Maria, Carapicuíba - SP",
-    mapsUrl: "https://maps.app.goo.gl/BrD1w9ymLqw7X54o6",
-  },
-];
+
 
 const generatePixPayload = (amount: number) => {
   const amountStr = amount.toFixed(2);
@@ -68,6 +57,7 @@ const Donations = () => {
   const [guardianDocument, setGuardianDocument] = useState("");
   const [guardianAuthorized, setGuardianAuthorized] = useState(false);
   const [pixStats, setPixStats] = useState<{ month_goal: number; current_amount: number; donor_count: number; month_label: string } | null>(null);
+  const [collectionPoints, setCollectionPoints] = useState<any[]>([]);
 
   useEffect(() => {
     const loadPixStats = async () => {
@@ -75,6 +65,14 @@ const Donations = () => {
       if (data?.pix_stats) setPixStats(data.pix_stats);
     };
     loadPixStats();
+    const loadPoints = async () => {
+      const { data } = await supabase
+        .from("collection_points" as any)
+        .select("*")
+        .order("sort_order", { ascending: true });
+      setCollectionPoints((data as any[]) || []);
+    };
+    loadPoints();
   }, []);
 
 
@@ -287,8 +285,12 @@ const Donations = () => {
               <h2 className="font-display text-lg font-semibold text-foreground">Doação de cupom fiscal</h2>
               <p className="text-sm text-muted-foreground mt-1">Entregue seus cupons fiscais em um dos pontos de coleta para apoiar os projetos da ONG.</p>
             </div>
-            {couponCollectionPoints.map((point) => (
-              <div key={point.name} className="bg-card rounded-xl p-4 border border-border">
+            {collectionPoints.length === 0 ? (
+              <div className="bg-card rounded-xl p-6 border border-border text-center text-sm text-muted-foreground">
+                Nenhum ponto de coleta cadastrado no momento.
+              </div>
+            ) : collectionPoints.map((point: any) => (
+              <div key={point.id} className="bg-card rounded-xl p-4 border border-border">
                 <div className="flex items-start gap-3">
                   <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <MapPin className="h-4 w-4 text-primary" />
@@ -298,11 +300,13 @@ const Donations = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">{point.address}</p>
                   </div>
                 </div>
-                <Button className="w-full mt-3" variant="outline" asChild>
-                  <a href={point.mapsUrl} target="_blank" rel="noopener noreferrer">
-                    <Navigation className="h-4 w-4 mr-2" /> Abrir localização <ExternalLink className="h-3.5 w-3.5 ml-2" />
-                  </a>
-                </Button>
+                {point.maps_url && (
+                  <Button className="w-full mt-3" variant="outline" asChild>
+                    <a href={point.maps_url} target="_blank" rel="noopener noreferrer">
+                      <Navigation className="h-4 w-4 mr-2" /> Abrir localização <ExternalLink className="h-3.5 w-3.5 ml-2" />
+                    </a>
+                  </Button>
+                )}
               </div>
             ))}
           </div>

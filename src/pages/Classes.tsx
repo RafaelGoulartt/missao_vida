@@ -69,6 +69,19 @@ const Classes = () => {
     },
   });
 
+  const { data: canEnroll = false } = useQuery({
+    queryKey: ["class-permission", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_permissions" as any)
+        .select("can_enroll_classes")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return !!(data as any)?.can_enroll_classes;
+    },
+    enabled: !!user,
+  });
+
   const { data: enrollments = [] } = useQuery({
     queryKey: ["enrollments", user?.id],
     queryFn: async () => {
@@ -174,6 +187,13 @@ const Classes = () => {
 
         {activeTab === "aulas" && (
           <div className="space-y-3">
+            {!isAdmin && !canEnroll && (
+              <div className="bg-accent/10 border border-accent/30 rounded-xl p-3">
+                <p className="text-xs text-foreground">
+                  Sua conta ainda não tem autorização para se inscrever em aulas. Peça a liberação a um administrador.
+                </p>
+              </div>
+            )}
             {classes.length === 0 ? (
               <div className="bg-card rounded-xl p-8 border border-border text-center">
                 <GraduationCap className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
@@ -222,6 +242,10 @@ const Classes = () => {
                           <XCircle className="h-4 w-4" />
                           Sair
                         </Button>
+                      ) : !canEnroll ? (
+                        <span className="text-xs text-muted-foreground italic text-right max-w-[130px]">
+                          Aguardando autorização do administrador
+                        </span>
                       ) : (
                         <Button
                           size="sm"
