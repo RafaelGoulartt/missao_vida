@@ -249,11 +249,11 @@ const Admin = () => {
   };
 
   const handleDeleteSubscription = async (id: string) => {
-    if (!confirm("Remover esta assinatura? Esta ação não pode ser desfeita.")) return;
+    if (!confirm("Remover este Guardião? Esta ação não pode ser desfeita.")) return;
     const { error } = await supabase.from("subscription_registrations" as any).delete().eq("id", id);
     if (error) toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
     else {
-      toast({ title: "Assinatura removida" });
+      toast({ title: "Guardião removido" });
       loadData();
     }
   };
@@ -288,7 +288,7 @@ const Admin = () => {
   const tabs = [
     { id: "alunos" as AdminTab, label: "Alunos", icon: Users, count: enrollments.length },
     { id: "doacoes" as AdminTab, label: "Doações", icon: DollarSign, count: donations.length },
-    { id: "assinaturas" as AdminTab, label: "Assinaturas", icon: CalendarDays, count: subscriptions.length },
+    { id: "assinaturas" as AdminTab, label: "Guardiões", icon: CalendarDays, count: subscriptions.length },
     { id: "aulas" as AdminTab, label: "Aulas", icon: BookOpen, count: classes.length },
     { id: "eventos" as AdminTab, label: "Eventos", icon: CalendarDays, count: 0 },
     { id: "presencas" as AdminTab, label: "Presenças", icon: UserCheck, count: attendance.length },
@@ -571,7 +571,7 @@ const Admin = () => {
                       </div>
                     ))}
                   </div>
-                ) : <div className="text-center py-8 text-muted-foreground text-sm">Nenhum cadastro de assinatura ainda</div>}
+                ) : <div className="text-center py-8 text-muted-foreground text-sm">Nenhum Guardião cadastrado ainda</div>}
               </div>
             )}
 

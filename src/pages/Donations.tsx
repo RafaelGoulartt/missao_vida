@@ -182,7 +182,7 @@ const Donations = () => {
       return;
     }
     if (subscriptionValue <= 0) {
-      toast({ title: "Informe o valor mensal", description: "Digite o valor inicial da assinatura." });
+      toast({ title: "Informe o valor mensal", description: "Digite o valor inicial do programa Guardiões." });
       return;
     }
     if (isMinor) {
@@ -228,7 +228,7 @@ const Donations = () => {
 
   const handleOpenSubscriptionMonth = (monthIndex: number) => {
     if (subscriptionValue <= 0) {
-      toast({ title: "Informe um valor", description: "Digite o valor da assinatura mensal." });
+      toast({ title: "Informe um valor", description: "Digite o valor mensal do programa Guardiões." });
       return;
     }
     setSelectedMonth(monthIndex);
@@ -262,7 +262,7 @@ const Donations = () => {
             <QrCode className="h-4 w-4 inline mr-1.5 -mt-0.5" /> PIX
           </button>
           <button onClick={() => setActiveTab("assinatura")} className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === "assinatura" ? "bg-primary text-primary-foreground shadow-md" : "bg-card text-muted-foreground border border-border"}`}>
-            <CalendarDays className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Assinatura
+            <CalendarDays className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Guardiões
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2 mb-4">
@@ -340,7 +340,7 @@ const Donations = () => {
                   )}
                 </div>
                 <Button className="w-full h-12 gradient-primary text-primary-foreground" onClick={handleJoinSubscription}>
-                  Quero participar da assinatura
+                  Quero ser um Guardião
                 </Button>
               </div>
             ) : showSubscriptionForm ? (
@@ -349,8 +349,8 @@ const Donations = () => {
                   <Button variant="ghost" className="-ml-2 mb-2" onClick={() => setShowSubscriptionForm(false)}>
                     <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
                   </Button>
-                  <h2 className="font-display text-lg font-semibold text-foreground">Cadastro do assinante</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Preencha seus dados para iniciar o programa de assinatura.</p>
+                  <h2 className="font-display text-lg font-semibold text-foreground">Cadastro de Guardião</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Preencha seus dados para participar do programa Guardiões.</p>
                 </div>
 
                 <div className="bg-card rounded-xl p-4 border border-border space-y-3">
@@ -456,7 +456,7 @@ const Donations = () => {
                         onChange={(e) => setGuardianAuthorized(e.target.checked)}
                         className="mt-0.5 h-4 w-4 accent-primary"
                       />
-                      <span className="text-xs text-foreground">Eu, responsável legal, autorizo a participação do menor no programa de assinatura.</span>
+                      <span className="text-xs text-foreground">Eu, responsável legal, autorizo a participação do menor no programa Guardiões.</span>
                     </label>
                   </div>
                 )}
