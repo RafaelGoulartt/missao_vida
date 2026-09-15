@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Missão Vida</string>
+    <string name="title_activity_main">Missão Vida</string>
+    <string name="package_name">com.missaovida.app</string>
+    <string name="custom_url_scheme">com.missaovida.app</string>
+</resources>

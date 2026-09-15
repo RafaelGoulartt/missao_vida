@@ -23,5 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
-.env*supabase/.temp/
+supabase/.temp/
 .env
+.env.*
+!.env.example
+
+# Capacitor / mobile
+# As pastas android/ e ios/ SÃO versionadas (elas têm seus próprios .gitignore
+# para os artefatos de build). Aqui ficam só os caches locais das ferramentas.
+.gradle/
+*.keystore
+*.jks
