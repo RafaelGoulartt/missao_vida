@@ -62,7 +62,7 @@ export const contentSections: ContentSection[] = [
   },
   {
     key: "donations_subscription_intro",
-    label: "Doações — Programa de assinatura",
+    label: "Doações — Guardiões",
     fields: [
       { key: "title", label: "Título", type: "text" },
       { key: "description", label: "Descrição", type: "textarea" },
@@ -73,7 +73,7 @@ export const contentSections: ContentSection[] = [
   {
     key: "pix_qrcode",
     label: "PIX — QR Code",
-    description: "Imagem e chave usadas em TODOS os PIX de doação (doações, assinatura, voluntários e ações).",
+    description: "Imagem e chave usadas em TODOS os PIX de doação (doações, Guardiões, voluntários e ações).",
     fields: [
       { key: "image", label: "Imagem do QR Code PIX", type: "image" },
       { key: "pix_key", label: "PIX copia e cola (chave ou código)", type: "textarea", placeholder: "Chave PIX ou código copia e cola" },
@@ -120,7 +120,7 @@ export const contentDefaults: Record<string, Record<string, string>> = {
     subtitle: "Cada gesto faz a diferença",
   },
   donations_subscription_intro: {
-    title: "Programa de assinatura",
+    title: "Guardiões",
     description: "Uma contribuição mensal livre para manter as ações da ONG acontecendo com previsibilidade.",
     video_url: "",
     video_placeholder: "Vídeo explicativo em breve",
