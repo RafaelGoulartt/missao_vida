@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { setupNativeHandlers } from "@/lib/native";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { SiteContentProvider } from "@/hooks/useSiteContent";
@@ -283,6 +284,15 @@ const AppRoutes = () => {
   );
 };
 
+// Botão voltar do Android, deep links de login e links externos no app nativo.
+const NativeHandlers = () => {
+  const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+  useEffect(() => setupNativeHandlers(() => navigateRef.current(-1)), []);
+  return null;
+};
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const handleSplashFinish = useCallback(() => setShowSplash(false), []);
@@ -297,6 +307,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <NativeHandlers />
           <AuthProvider>
             <SiteContentProvider>
               <AppRoutes />

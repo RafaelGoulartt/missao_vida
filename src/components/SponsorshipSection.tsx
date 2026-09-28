@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Heart, ExternalLink, CheckCircle2, Sparkles, Users } from "lucide-react";
+import { openExternal } from "@/lib/native";
 
 interface Child {
   id: string;
@@ -53,7 +54,7 @@ const SponsorshipSection = () => {
       return;
     }
     if (mySponsorships.has(child.id)) {
-      window.open(child.payment_link, "_blank", "noopener,noreferrer");
+      openExternal(child.payment_link);
       return;
     }
 
@@ -66,7 +67,7 @@ const SponsorshipSection = () => {
       return;
     }
 
-    window.open(child.payment_link, "_blank", "noopener,noreferrer");
+    openExternal(child.payment_link);
     toast({ title: "Obrigado por apadrinhar! ❤️", description: `Você está ajudando ${child.name}.` });
     load();
   };

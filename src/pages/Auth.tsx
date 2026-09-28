@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Heart } from "lucide-react";
+import { getAuthRedirectUrl, isNative, signInWithGoogle } from "@/lib/native";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -34,7 +35,7 @@ const Auth = () => {
           password,
           options: {
             data: { display_name: displayName },
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: getAuthRedirectUrl(),
           },
         });
         if (error) throw error;
@@ -144,18 +145,16 @@ const Auth = () => {
             disabled={loading}
             onClick={async () => {
               setLoading(true);
-              const { error } = await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: {
-                  redirectTo: window.location.origin,
-                },
-              });
+              const { error } = await signInWithGoogle();
               if (error) {
                 toast({
                   title: "Erro",
                   description: error.message,
                   variant: "destructive",
                 });
+                setLoading(false);
+              } else if (isNative) {
+                // No app o login continua no navegador do sistema; a sessão chega pelo deep link.
                 setLoading(false);
               }
             }}
